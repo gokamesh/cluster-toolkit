@@ -27,9 +27,8 @@ RUN apt-get -y update && apt-get -y install \
     gnupg \
     lsb-release \
     unzip \
-    jq \
-    tmux && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    jq ansible moreutils pax rustc cargo \
+    tmux
 
 # --- Install ShellCheck ---
 RUN wget https://github.com/koalaman/shellcheck/releases/download/${SHELLCHECK_VER}/shellcheck-${SHELLCHECK_VER}.linux.x86_64.tar.xz && \
@@ -52,18 +51,29 @@ RUN curl -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/sh
     apt-get -y update && apt-get install -y \
     terraform \
     packer && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    apt-get clean 
+
+RUN wget -qO- https://apt.fury.io/nushell/gpg.key | gpg --dearmor -o /etc/apt/keyrings/fury-nushell.gpg
+RUN echo "deb [signed-by=/etc/apt/keyrings/fury-nushell.gpg] https://apt.fury.io/nushell/ /" | sudo tee /etc/apt/sources.list.d/fury-nushell.list
+RUN apt update
+RUN apt install nushell
+RUN apt install fonts-firacode
+RUN curl -sS https://starship.rs/install.sh | sh -s -- -y
+
+
+RUN apt install zstd
+RUN curl -fsSL https://ollama.com/install.sh | sh
 
 # --- Install Python and Set as Default ---
 RUN add-apt-repository ppa:deadsnakes/ppa && \
     apt-get -y update && \
     apt-get -y install \
-        python3.12 \
-        python3.12-venv \
-        python3.12-dev \
+        python3.14 \
+        python3.14-venv \
+        python3.14-dev \
         python3-pip && \
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1 && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.14 1 && \
+    apt-get clean
 
 # --- Create Virtual Environment ---
 RUN python3 -m venv /opt/venv
@@ -91,6 +101,10 @@ COPY tools/cloud-workstations/base-tooling-requirements.txt base-tooling-require
 COPY tools/cloud-build/requirements.txt cloud_build_requirements.txt
 COPY docs/hybrid-slurm-cluster/requirements.txt slurm_requirements.txt
 COPY tools/cloud-workstations/requirements.txt slurm_gcp_requirements.txt
+
+## Install Node packages
+RUN npm i -g pnpm
+RUN npm i -g zx
 
 # --- Install Python Dependencies ---
 RUN pip install --require-hashes --no-cache-dir -r base-tooling-requirements.txt && \
